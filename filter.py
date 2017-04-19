@@ -1,14 +1,12 @@
 from skimage import data, io, filters
 from skimage.morphology import square, disk, rectangle
+from skimage.filters.rank import median, noise_filter, minimum
 from math import ceil
 import numpy as np
 
 from directory import fruit_basket, image_noise
 from error_handeling import KernelShapeError
 
-def show_image(image):
-    io.imshow(image)
-    io.show()
 
 def read_image(image_array, im_show=False, as_grey=True, flatten=True):
     """read image and show
@@ -38,141 +36,125 @@ def read_image(image_array, im_show=False, as_grey=True, flatten=True):
 
     return image
 
-def high_pass_filter(image_array, window_size, center=8, other=-1, window_shape="square" ,im_show=False):
-    """A low pass filter is the basis for most smoothing methods. An image is smoothed by decreasing the disparity between pixel values by averaging nearby pixels
+def show_image(image):
+    io.imshow(image)
+    io.show()
+
+def check_windows_size(windows_size):
+    '''
+    KernelShapeError if kernel size is Even
+    '''
+    if windows_size%2==0:
+        raise KernelShapeError("windows_size must be odd.")
+
+def make_kernel(window_shape, windows_size, convert_float=False):
+    '''
+    KernelShapeError if shape is not in ["square", "disk"]
+    '''
+    if not window_shape in ["square", "disk"]:
+        raise KernelShapeError("window_shape is unknown. window_shape={square, disk}.")
+    elif window_shape=="square":
+        window=square(windows_size)
+    elif window_shape=="disk":
+        window=disk(windows_size)
+
+    #window convert to float
+    if convert_float:
+        window=window.astype(float)
+
+    return window
+
+
+def median_image(image_array, windows_size, window_shape="square", im_show=True):
+    """local median of an image.
 
     Parameters
     ----------
     image_array:numpy.array:
         input image
 
+    windows_size:int
+        the size of window
+
+    window_shape: str
+        str is element from dict:{square, disk}
+
     im_show : Bool
         if True show result
 
-    Other Parameters
-    ----------------
-    window_size:int
-        the size of window
-
-    center:int
-        the value of c in center:
-            1 1 1
-            1 c 1
-            1 1 1
-
-    other:int
-        the value of ones in below:
-        disk shape:
-            [0 0 1 0 0]
-            [0 1 1 1 0]
-            [1 1 c 1 1]
-            [0 1 1 1 0]
-            [0 0 1 0 0]
-        square shape:
-            [1 1 1]
-            [1 c 1]
-            [1 1 1]
-
-    window_shape: str
-        str is element from dict:{square, disk}
-
-
-    Returns
-    -------
-    image : numpy.array
-        edge detection
     """
 
-    #make kernel windows
-    kernel=_make_kernel(window_size, center, other, window_shape)
+    check_windows_size(windows_size)
+    kernel=make_kernel(window_shape, windows_size)
 
-    #image size x,y
-    image_Length=len(image_array[1,:])
-    image_width= len(image_array[:,1])
+    #median
+    img=median(image_array, kernel)
 
-    #make kernel as shape as image_array
-    x=ceil(image_Length/window_size)
-    y=ceil(image_width/window_size)
-    #repeat kernel as size of image
-    kernel=np.tile(kernel,(x,y))
-    #cut kernel to fit to image
-    kernel=kernel[:image_Length,:image_width]
-
-    #multiple kernel and windows
-    image_array=image_array*kernel
-
+    #show image
     if im_show:
-        show_image(image_array)
-    return image_array
+        show_image(img)
 
-def _make_kernel(window_size, center=8, other=-1, window_shape="square"):
-    """make kernel/window
+def noise_filter_image(image_array, windows_size, window_shape="square", im_show=True):
+    """Noise feature.
 
     Parameters
     ----------
-    window_size:int
+    image_array:numpy.array:
+        input image
+
+    windows_size:int
         the size of window
-
-    center:int
-        the value of c in center:
-            1 1 1
-            1 c 1
-            1 1 1
-
-    other:int
-        the value of ones in below:
-        disk shape:
-            [0 0 1 0 0]
-            [0 1 1 1 0]
-            [1 1 c 1 1]
-            [0 1 1 1 0]
-            [0 0 1 0 0]
-        square shape:
-            [1 1 1]
-            [1 c 1]
-            [1 1 1]
 
     window_shape: str
         str is element from dict:{square, disk}
 
-    Other Parameters
-    ----------------
+    im_show : Bool
+        if True show result
 
-
-    Returns
-    -------
-    window : numpy.array
-        kernel or window
     """
-    #check window_size be odd
-    if window_size%2==0:
-        raise KernelShapeError("window_size must be odd.")
+    check_windows_size(windows_size)
+    kernel=make_kernel(window_shape, windows_size)
 
-    #check window shape types and make it
-    if not window_shape in ["square", "disk"]:
-        raise KernelShapeError("window_shape is unknown. window_shape={square, disk}.")
-    elif window_shape=="square":
-        window=square(window_size)
-    elif window_shape=="disk":
-        window=disk(window_size)
+    #noise
+    img=noise_filter(image_array, kernel)
 
-    #window size to float
-    window=window.astype(float)
+    #show image
+    if im_show:
+        show_image(img)
 
-    #set center of array
-    window_center_index=int(len(window)/2)
-    window[window_center_index,window_center_index]=center
+def minimum_image(image_array, windows_size, window_shape="square", im_show=True):
+    """The lower algorithm complexity makes skimage.filters.rank.minimum more efficient for larger images and structuring elements.
 
-    #set others:
-    window[window==1]=other
+    Parameters
+    ----------
+    image_array:numpy.array:
+        input image
 
-    return window
+    windows_size:int
+        the size of window
+
+    window_shape: str
+        str is element from dict:{square, disk}
+
+    im_show : Bool
+        if True show result
+
+    """
+    check_windows_size(windows_size)
+    kernel=make_kernel(window_shape, windows_size)
+
+    #min
+    img=minimum(image_array, kernel)
+
+    #show image
+    if im_show:
+        show_image(img)
+
+
 
 
 if __name__=="__main__":
     img=read_image(image_noise, im_show=True)
-
-    # p=_make_kernel(5, window_shape="square")
-    # print(p)
-
-    low_pass_filter(img, 5, im_show=True)
+    #median_image(img, 3)
+    #noise_filter_image(img, 3, "disk")
+    #minimum_image(img, 3)

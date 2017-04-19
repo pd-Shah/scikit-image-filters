@@ -6,6 +6,10 @@ import numpy as np
 from directory import fruit_basket, image_noise
 from error_handeling import KernelShapeError
 
+def show_image(image):
+    io.imshow(image)
+    io.show()
+
 def read_image(image_array, im_show=False, as_grey=True, flatten=True):
     """read image and show
 
@@ -30,11 +34,11 @@ def read_image(image_array, im_show=False, as_grey=True, flatten=True):
     """
     image=io.imread(image_array, as_grey=as_grey, flatten=flatten)
     if im_show:
-        io.imshow(image)
-        io.show()
+        show_image(image)
+
     return image
 
-def low_pass_filter(image_array, window_size, center=8, other=-1, window_shape="square" ,im_show=False):
+def high_pass_filter(image_array, window_size, center=8, other=-1, window_shape="square" ,im_show=False):
     """A low pass filter is the basis for most smoothing methods. An image is smoothed by decreasing the disparity between pixel values by averaging nearby pixels
 
     Parameters
@@ -76,7 +80,7 @@ def low_pass_filter(image_array, window_size, center=8, other=-1, window_shape="
     Returns
     -------
     image : numpy.array
-        noise filter array
+        edge detection
     """
 
     #make kernel windows
@@ -95,12 +99,11 @@ def low_pass_filter(image_array, window_size, center=8, other=-1, window_shape="
     kernel=kernel[:image_Length,:image_width]
 
     #multiple kernel and windows
-    image=image*kernel
+    image_array=image_array*kernel
 
     if im_show:
-        io.imshow(image)
-        io.show()
-    return image
+        show_image(image_array)
+    return image_array
 
 def _make_kernel(window_size, center=8, other=-1, window_shape="square"):
     """make kernel/window
@@ -168,6 +171,8 @@ def _make_kernel(window_size, center=8, other=-1, window_shape="square"):
 
 if __name__=="__main__":
     img=read_image(image_noise, im_show=True)
-    #low_pass_filter(img, im_show=True)
-    p=_make_kernel(3, window_shape="disk")
-    print(p)
+
+    # p=_make_kernel(5, window_shape="square")
+    # print(p)
+
+    low_pass_filter(img, 5, im_show=True)

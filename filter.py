@@ -157,4 +157,4 @@ if __name__=="__main__":
     img=read_image(image_noise, im_show=True)
     #median_image(img, 3)
     #noise_filter_image(img, 3, "disk")
-    #minimum_image(img, 3)
+    minimum_image(img, 3)
